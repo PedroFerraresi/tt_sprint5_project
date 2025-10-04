@@ -68,16 +68,8 @@ def load_and_prepare(raw_path, processed_path=None):
     # 3) Cria a coluna month_year
     df["month_year"] = df["order_date"].dt.to_period("M").astype(str)
 
-
     # 4) Remover linhas com QUALQUER dado faltante
-    antes = len(df)
     df = df.dropna().reset_index(drop=True)
-    removidas = antes - len(df)
-    if removidas > 0:
-        try:
-            st.info(f"Linhas removidas por dados faltantes: {removidas} (de {antes})")
-        except Exception:
-            pass  # fora do Streamlit, apenas ignore
 
     # 5) Salvar processado (opcional)
     if processed_path:

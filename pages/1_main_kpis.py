@@ -15,6 +15,7 @@
 import streamlit as st
 import plotly.express as px
 from utils.pre_process import load_processed
+from utils.lateral_filters import sidebar_filters
 
 # OPCIONAL (apenas se você executar esta página isolada no VS Code):
 # from utils.bootstrap import add_root_relative_to
@@ -42,12 +43,15 @@ def main(df=None):
     # 1) Carrega dados (se o main.py não injetou df)
     if df is None:
         df = get_df()
+        
+    # <- aplica filtros da barra lateral
+    df = sidebar_filters(df)
 
     st.title("Visão Geral")
 
     # 2) Espelho rápido da base
-    st.caption("Amostra dos dados processados")
-    st.dataframe(df.head(), use_container_width=True)
+    # st.caption("Amostra dos dados processados")
+    # st.dataframe(df.head(), use_container_width=True)
 
     # 3) KPIs principais
     # 3.1 KPIs de contagem (países, categorias, produtos)
@@ -83,7 +87,7 @@ def main(df=None):
     # Requisitos: 'month_year' (YYYY-MM), 'total_gross_sale' e 'profit'
     # Observação: se alguma coluna não existir, mostramos uma mensagem amigável.
     needed_cols = ["month_year", "total_gross_sale", "profit"]
-    if all(c in df.columns for c in needed_cols):
+    if all(column in df.columns for column in needed_cols):
         # agregação por mês/ano
         g = df.groupby("month_year", as_index=False)[["total_gross_sale", "profit"]].sum()
 
