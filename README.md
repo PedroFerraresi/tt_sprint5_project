@@ -1,1 +1,1 @@
-# tt_sprint5_project
+# Projeto de Exemplo para a Sprint 5 (TripleTen)
