@@ -2,37 +2,23 @@
 # -----------------------------------------------------------------------
 import streamlit as st
 import pandas as pd
-
-def _range_from_series(s):
-    try:
-        return float(s.min()), float(s.max())
-    except Exception:
-        return 0.0, 0.0
-
-def _unique_sorted(s):
-    try:
-        vals = pd.Series(s).dropna().unique().tolist()
-        vals = [v for v in vals if v is not None]
-        return sorted(vals)
-    except Exception:
-        return []
+from utils.aux_functions import range_from_series, unique_sorted
 
 def sidebar_filters(df):
     """
     Desenha filtros na barra lateral e devolve o DataFrame filtrado.
-    Agora o período também é um slider:
-      - Se existir 'order_date' em datetime -> slider de datas
-      - Caso contrário, se existir 'month_year' (YYYY-MM) -> slider baseado no 1º dia do mês
+    Período é slider:
+      - Se existir 'order_date' (datetime) -> slider de datas
+      - Senão, se existir 'month_year' (YYYY-MM) -> slider com 1º dia do mês
     """
     st.sidebar.markdown("### 🔎 Filtros")
 
     df_filtered = df.copy()
 
     # =========================
-    # Período (AGORA VIA SLIDER)
+    # Período (slider)
     # =========================
     if "order_date" in df_filtered.columns and pd.api.types.is_datetime64_any_dtype(df_filtered["order_date"]):
-        # Slider diretamente com datas (streamlit suporta date/datetime)
         min_d = pd.to_datetime(df_filtered["order_date"].min())
         max_d = pd.to_datetime(df_filtered["order_date"].max())
         if pd.notna(min_d) and pd.notna(max_d) and min_d <= max_d:
@@ -47,10 +33,7 @@ def sidebar_filters(df):
             df_filtered = df_filtered[(df_filtered["order_date"] >= start_date) & (df_filtered["order_date"] <= end_date)]
 
     elif "month_year" in df_filtered.columns:
-        # Converte YYYY-MM para um datetime correspondente ao 1º dia do mês
-        # Isso permite usar um slider de datetime mesmo sem 'order_date'
         try:
-            # cria uma coluna auxiliar (não permanente) para o slider
             period_idx = pd.PeriodIndex(df_filtered["month_year"], freq="M")
             month_start = period_idx.to_timestamp(how="start")
             df_filtered["_month_start_tmp"] = month_start
@@ -66,16 +49,12 @@ def sidebar_filters(df):
                 )
                 start_p = pd.Period(pd.to_datetime(start_m), freq="M")
                 end_p = pd.Period(pd.to_datetime(end_m), freq="M")
-
-                # filtra usando os períodos equivalentes
                 cur_p = pd.PeriodIndex(df_filtered["month_year"], freq="M")
                 mask = (cur_p >= start_p) & (cur_p <= end_p)
                 df_filtered = df_filtered.loc[mask].copy()
         except Exception:
-            # se algo falhar no parsing, apenas ignora o filtro de período por month_year
             pass
         finally:
-            # remove coluna auxiliar se existir
             if "_month_start_tmp" in df_filtered.columns:
                 df_filtered.drop(columns=["_month_start_tmp"], inplace=True, errors="ignore")
 
@@ -83,28 +62,28 @@ def sidebar_filters(df):
     # Dimensões de negócio
     # =========================
     if "category" in df_filtered.columns:
-        opts = _unique_sorted(df_filtered["category"])
+        opts = unique_sorted(df_filtered["category"])
         if opts:
             sel = st.sidebar.multiselect("Category", opts, default=opts)
             if sel:
                 df_filtered = df_filtered[df_filtered["category"].isin(sel)]
 
     if "sub_category" in df_filtered.columns:
-        opts = _unique_sorted(df_filtered["sub_category"])
+        opts = unique_sorted(df_filtered["sub_category"])
         if opts:
             sel = st.sidebar.multiselect("Sub-Category", opts, default=opts)
             if sel:
                 df_filtered = df_filtered[df_filtered["sub_category"].isin(sel)]
 
     if "segment" in df_filtered.columns:
-        opts = _unique_sorted(df_filtered["segment"])
+        opts = unique_sorted(df_filtered["segment"])
         if opts:
             sel = st.sidebar.multiselect("Segment", opts, default=opts)
             if sel:
                 df_filtered = df_filtered[df_filtered["segment"].isin(sel)]
 
     if "country" in df_filtered.columns:
-        opts = _unique_sorted(df_filtered["country"])
+        opts = unique_sorted(df_filtered["country"])
         if opts:
             sel = st.sidebar.multiselect("Country", opts, default=opts)
             if sel:
@@ -114,28 +93,28 @@ def sidebar_filters(df):
     # Faixas numéricas
     # =========================
     if "sales" in df_filtered.columns:
-        vmin, vmax = _range_from_series(df_filtered["sales"])
+        vmin, vmax = range_from_series(df_filtered["sales"])
         if vmin < vmax:
             sel = st.sidebar.slider("Sales (faixa)", min_value=float(vmin), max_value=float(vmax),
                                     value=(float(vmin), float(vmax)))
             df_filtered = df_filtered[(df_filtered["sales"] >= sel[0]) & (df_filtered["sales"] <= sel[1])]
 
     if "profit" in df_filtered.columns:
-        vmin, vmax = _range_from_series(df_filtered["profit"])
+        vmin, vmax = range_from_series(df_filtered["profit"])
         if vmin < vmax:
             sel = st.sidebar.slider("Profit (faixa)", min_value=float(vmin), max_value=float(vmax),
                                     value=(float(vmin), float(vmax)))
             df_filtered = df_filtered[(df_filtered["profit"] >= sel[0]) & (df_filtered["profit"] <= sel[1])]
 
     if "total_cost" in df_filtered.columns:
-        vmin, vmax = _range_from_series(df_filtered["total_cost"])
+        vmin, vmax = range_from_series(df_filtered["total_cost"])
         if vmin < vmax:
             sel = st.sidebar.slider("Total Cost (faixa)", min_value=float(vmin), max_value=float(vmax),
                                     value=(float(vmin), float(vmax)))
             df_filtered = df_filtered[(df_filtered["total_cost"] >= sel[0]) & (df_filtered["total_cost"] <= sel[1])]
 
     if "total_gross_sales" in df_filtered.columns:
-        vmin, vmax = _range_from_series(df_filtered["total_gross_sales"])
+        vmin, vmax = range_from_series(df_filtered["total_gross_sales"])
         if vmin < vmax:
             sel = st.sidebar.slider("Total Gross Sales (faixa)", min_value=float(vmin), max_value=float(vmax),
                                     value=(float(vmin), float(vmax)))
